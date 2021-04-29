@@ -1,6 +1,6 @@
 rm -rf result
 mkdir result
-for i in 4 8 16 32 64 128 256 512
+for i in 1 2 4 8 16
 do
     ./profile.sh python resnet.py 0 $i
     cp output.csv result/ResNet_3080_$i.csv
