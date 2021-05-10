@@ -1,5 +1,3 @@
-rm -rf result
-mkdir result
 for i in 1 2 4 8 
 do
     ./profile.sh python bert.py 0 $i

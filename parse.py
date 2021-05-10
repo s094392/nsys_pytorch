@@ -18,6 +18,9 @@ def parse_json(filename):
         M[i["CorrId"]] = i
     return M
 
+def get_thread_num(kernel):
+    return kernel["GrdX"] * kernel["GrdY"] * kernel["GrdZ"] * kernel["BlkX"] * kernel["BlkY"] * kernel["BlkZ"]
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -31,9 +34,11 @@ def main():
     kernel_info = parse_json(args.json)
 
     op = layer_info[0]["op"] or ["_"]  
+    first_kernel = kernel_info[layer_info[0]["cid"]]
     now_duration = int(layer_info[0]["kDuration"])
-    now_reg = kernel_info[layer_info[0]["cid"]]["Reg/Trd"]
-    now_smem = kernel_info[layer_info[0]["cid"]]["StcSMem"]
+    now_reg = first_kernel["Reg/Trd"]
+    now_smem = first_kernel["StcSMem"] + first_kernel["StcSMem"]
+    now_thread = get_thread_num(first_kernel)
 
     data = list()
     for i in range(1, len(layer_info)):
@@ -41,16 +46,18 @@ def main():
         if layer_info[i]["op"] != op:    
             if op == "":
                 op = ["_"]
-            data.append({"Op": op[0], "duration": now_duration, "Reg/Trd": now_reg, "StcSMem": now_smem})
+            data.append({"Op": op[0], "duration": now_duration, "Reg/Trd": now_reg, "Mem": now_smem, "Thread": now_thread})
             now_duration = 0    
             now_reg = 0
             now_smem = 0
+            now_thread
         now_duration += int(layer_info[i]["kDuration"])
         now_reg = max((now_reg, int(current_kernel["Reg/Trd"])))
-        now_smem = max((now_reg, int(current_kernel["StcSMem"])))
+        now_smem = max((now_reg, int(current_kernel["StcSMem"]) + int(current_kernel["DymSMem"])))
+        now_thread = max(now_thread, get_thread_num(current_kernel))
         op = layer_info[i]["op"]
         
-    data.append({"Op": op[0], "duration": now_duration, "Reg/Trd": now_reg, "StcSMem": now_smem})
+    data.append({"Op": op[0], "duration": now_duration, "Reg/Trd": now_reg, "Mem": now_smem, "Thread": now_thread})
 
     keys = data[0].keys()
     with open(args.output, 'w', newline='')  as output_file:
