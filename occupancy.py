@@ -1,31 +1,49 @@
+import sys
 from math import ceil, floor
 
-computeCapability = 8.6
 sharedSize = 65536
 CUDA_version = 11.1
-limitThreadsPerWarp = 32
-limitWarpsPerMultiprocessor = 48
-limitBlocksPerMultiprocessor = 16
-limitThreadsPerMultiprocessor = 1536
-maxThreadsPerBlock = 1024
-limitTotalRegisters = 65536
-limitRegsPerBlock = 65535
-limitRegsPerThread = 255
-limitTotalSharedMemory = 65536
-limitSharedMemoryPerBlock = 65536
-myAllocationSize = 256
-myAllocationGranularity = "warp"
-mySharedMemAllocationSize = 128
-myWarpAllocationGranularity = 4
-CUDASharedMemory = 1024
 
 
-def occupancy(MyThreadCount, MyRegCount, MySharedMemory):
+def occupancy(MyThreadCount, MyRegCount, MySharedMemory, computeCapability):
     def roundup(x, factor):
-        return int(ceil(x/factor)) * factor
+        return int(ceil(x / factor)) * factor
 
     def rounddown(x, factor):
-        return int(floor(x/factor)) * factor
+        return int(floor(x / factor)) * factor
+
+    if computeCapability == 6.1:
+        limitThreadsPerWarp = 32
+        limitWarpsPerMultiprocessor = 64
+        limitBlocksPerMultiprocessor = 32
+        limitThreadsPerMultiprocessor = 2048
+        maxThreadsPerBlock = 1024
+        limitTotalRegisters = 65536
+        limitRegsPerBlock = 65536
+        limitRegsPerThread = 255
+        limitTotalSharedMemory = 65536
+        limitSharedMemoryPerBlock = 49152
+        myAllocationSize = 256
+        myAllocationGranularity = 'warp'
+        mySharedMemAllocationSize = 256
+        myWarpAllocationGranularity = 4
+        CUDASharedMemory = 0
+    elif computeCapability == 8.6:
+        limitThreadsPerWarp = 32
+        limitWarpsPerMultiprocessor = 48
+        limitBlocksPerMultiprocessor = 16
+        limitThreadsPerMultiprocessor = 1536
+        maxThreadsPerBlock = 1024
+        limitTotalRegisters = 65536
+        limitRegsPerBlock = 65536
+        limitRegsPerThread = 255
+        limitTotalSharedMemory = 65536
+        limitSharedMemoryPerBlock = 65536
+        myAllocationSize = 256
+        myAllocationGranularity = "warp"
+        mySharedMemAllocationSize = 128
+        myWarpAllocationGranularity = 4
+        CUDASharedMemory = 1024
 
     MyWarpsPerBlock = ceil(MyThreadCount / limitThreadsPerWarp)
     MyRegsPerBlock = MyRegsPerBlock = ceil(
@@ -50,10 +68,16 @@ def occupancy(MyThreadCount, MyRegCount, MySharedMemory):
         ) if MyRegCount > 0 else limitBlocksPerMultiprocessor
     limitBlocksDueToSMem = 7
 
-    B21 = min((limitBlocksDueToWarps, limitBlocksDueToRegs, limitBlocksDueToSMem))
-    B20 = B21*MyWarpsPerBlock
-    B19 = B20*limitThreadsPerWarp
-    ans = B20/limitWarpsPerMultiprocessor
+    B21 = min(
+        (limitBlocksDueToWarps, limitBlocksDueToRegs, limitBlocksDueToSMem))
+    B20 = B21 * MyWarpsPerBlock
+    B19 = B20 * limitThreadsPerWarp
+    ans = B20 / limitWarpsPerMultiprocessor
     return ans
 
-print(occupancy(256, 42, 42))
+
+if __name__ == "__main__":
+    computeCapability = float(sys.argv[1])
+    print(
+        occupancy(float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]),
+                  computeCapability))
